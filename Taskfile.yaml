@@ -2,7 +2,6 @@ version: '3'
 
 vars:
   KERNEL_HEADER_PATH: /usr/src/kernels/6.2.14-200.fc37.x86_64
-  LIBBPF_HEADERS: tools/bpf/resolve_btfids/libbpf/include/bpf
   LIBBPF_OBJ: tools/bpf/resolve_btfids/libbpf/libbpf.a
 
 tasks:
@@ -22,10 +21,8 @@ tasks:
   build_xdp:
     desc: Build the bpf program
     cmds:
-      - docker run -w /src --rm -it
-        -v $(pwd)/src:/src bpf-builder sh -c "
-        clang -I/usr/include/kernel/{{.LIBPF_HEADERS}}
-        -g -O2 -target bpf -c xdp.c -o xdp.o"
+      - docker run -w /src --rm -it -v $(pwd)/src:/src bpf-builder
+        clang -I/usr/include/bpf -g -O2 -target bpf -c xdp.c -o xdp.o
 
   build_kernel_headers:
     desc: Build the kernel headers required
@@ -36,6 +33,6 @@ tasks:
     desc: Build control plane
     cmds:
       - CC=clang
-        CGO_CFLAGS="-I{{.KERNEL_HEADER_PATH}}/{{.LIBPF_HEADERS}}"
+        CGO_CFLAGS="-I/usr/include/bpf"
         CGO_LDFLAGS="{{.KERNEL_HEADER_PATH}}/{{.LIBBPF_OBJ}}"
         go build -o control-plane .
