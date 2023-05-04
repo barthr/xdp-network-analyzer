@@ -1,0 +1,33 @@
+version: '3'
+
+vars:
+  KERNEL_HEADER_PATH: /usr/src/kernels/6.2.14-200.fc37.x86_64
+  LIBBPF_HEADERS: tools/bpf/resolve_btfids/libbpf/include/bpf
+  LIBBPF_OBJ: tools/bpf/resolve_btfids/libbpf/libbpf.a
+
+tasks:
+  init-network:
+    desc: Initialize the network
+    cmds:
+      - sudo ip link add dev veth0 type veth peer name veth1
+      - sudo ip addr add 192.168.1.1/24 dev veth0
+      - sudo ip addr add 192.168.1.2/24 dev veth0
+      - sudo ip link set dev veth0 up
+      - sudo ip link set dev veth1 up
+  builder:
+    desc: Build a docker image which can build the bpf program
+    cmds:
+      - docker build -t bpf-builder -f Dockerfile .
+  build_xdp:
+    desc: Build the bpf program
+    cmds:
+      - docker run -w /src --rm -it
+        -v {{.KERNEL_HEADER_PATH}}:/usr/include/kernel
+        -v $(pwd)/src:/src bpf-builder clang -I/usr/include/kernel/{{.LIBPF_HEADERS}} -I/usr/include/kernel -g -O2 -target bpf -c xdp.c -o xdp.o
+  build_control_plane:
+    desc: Build control plane
+    cmds:
+      - CC=clang
+        CGO_CFLAGS="-I{{.KERNEL_HEADER_PATH}}/{{.LIBPF_HEADERS}}"
+        CGO_LDFLAGS="{{.KERNEL_HEADER_PATH}}/{{.LIBBPF_OBJ}}"
+        go build -o control-plane .
