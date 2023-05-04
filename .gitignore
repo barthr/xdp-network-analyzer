@@ -9,3 +9,5 @@ control-plane
 vendor
 
 /**/.vscode
+
+vmlinux.h

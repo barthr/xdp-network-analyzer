@@ -11,3 +11,8 @@ RUN apt-get update && \
         gcc-multilib \
         llvm \
         libelf-dev
+
+RUN git clone https://github.com/libbpf/bpftool.git && \
+  cd bpftool/src && \
+  make && \
+  mv ./bpftool /usr/bin/bpftool
