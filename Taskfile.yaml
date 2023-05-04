@@ -24,6 +24,7 @@ tasks:
       - docker run -w /src --rm -it
         -v {{.KERNEL_HEADER_PATH}}:/usr/include/kernel
         -v $(pwd)/src:/src bpf-builder clang -I/usr/include/kernel/{{.LIBPF_HEADERS}} -I/usr/include/kernel -g -O2 -target bpf -c xdp.c -o xdp.o
+
   build_control_plane:
     desc: Build control plane
     cmds:
