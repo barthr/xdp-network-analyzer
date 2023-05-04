@@ -18,6 +18,14 @@ the correct dependencies setup.
 However, these steps can change depending on your distro. If you are using a different distro follow the steps for your
 given distro
 
+#### Why use a container?
+
+Since we are using some dependencies from the system (to avoid incompatible headers from the kernel) we need some
+dependencies on the host system.
+The question can be why should we use a container than to build the program? The answer is that we can use the same
+container to build the program on different systems,
+since it will set up some dependencies which you might not have on your system.
+
 To build the container run:
 
 ```bash
