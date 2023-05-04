@@ -1,12 +1,11 @@
 #include "vmlinux.h"
+
+#include <string.h>
+
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 
 char LICENSE[] SEC("license") = "GPL";
-
-struct data_t {
-    __u16 dst_port;
-};
 
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
@@ -14,20 +13,36 @@ struct {
 } events SEC(".maps");
 long ringbuffer_flags = 0;
 
-SEC("xdp")
-int my_program(struct xdp_md *ctx) {
-    __u64 *slot;
-    slot = bpf_ringbuf_reserve(&events, sizeof(struct data_t), ringbuffer_flags);
-    if (!slot) {
-        return XDP_PASS;
-    }
+// cursor to keep track of current parsing position
+struct hdr_cursor {
+    void* pos;
+};
 
-    struct data_t *buffer = bpf_ringbuf_buffer(&events, slot);
-    *buffer = (struct data_t){
-        .dst_port = 24,
+SEC("xdp")
+int my_program(struct xdp_md* ctx)
+{
+    void* data = (void*)(long)ctx->data;
+    void* data_end = (void*)(long)ctx->data_end;
+    struct ethhdr* eth;
+
+    /* These keep track of the next header type and iterator pointer */
+    struct hdr_cursor nh = {
+        .pos = data
     };
 
-    bpf_ringbuf_submit(slot, ringbuffer_flags);
+    int nh_type = parse_ethhdr(&nh, data_end, &eth);
+    if (eth + 1 > data_end)
+        return XDP_DROP;
+
+    if (nh_type != bpf_htons(0x0800))
+        return XDP_DROP;
+
+    char eth_proto_str[6];
+    sprintf(eth_proto_str, "%d", ntohs(eth->h_proto));
+
+    bpf_printk("eth_proto_str: %s\n", eth_proto_str);
+
+    bpf_ringbuf_output(&events, eth_proto_str, strlen(eth_proto_str) + 1, 0);
 
     return XDP_PASS;
 }

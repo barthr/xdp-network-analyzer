@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"os"
 )
@@ -53,6 +52,6 @@ func main() {
 	defer rb.Close()
 	for {
 		b := <-eventsChannel
-		fmt.Println(binary.LittleEndian.Uint32(b))
+		fmt.Println(string(b))
 	}
 }
