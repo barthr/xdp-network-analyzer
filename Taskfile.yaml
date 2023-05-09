@@ -10,7 +10,7 @@ tasks:
     cmds:
       - sudo ip link add dev veth0 type veth peer name veth1
       - sudo ip addr add 10.0.0.1/24 dev veth0
-      - sudo ip addr add 10.0.0.2/24 dev veth0
+      - sudo ip addr add 10.0.0.2/24 dev veth1
       - sudo ip link set dev veth0 up
       - sudo ip link set dev veth1 up
   builder:

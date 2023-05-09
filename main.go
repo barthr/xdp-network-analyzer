@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+
+	bpf "github.com/aquasecurity/libbpfgo"
 )
-import bpf "github.com/aquasecurity/libbpfgo"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -39,9 +40,9 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	// ring buffer
+
 	eventsChannel := make(chan []byte)
-	rb, err := bpfModule.InitRingBuf("events", eventsChannel)
+	rb, err := bpfModule.InitRingBuf("ringbuf_map", eventsChannel)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -52,6 +53,8 @@ func main() {
 	defer rb.Close()
 	for {
 		b := <-eventsChannel
+		// convert byte array to printable string
+		// u := binary.LittleEndian.Uint32(b)
 		fmt.Println(string(b))
 	}
 }
