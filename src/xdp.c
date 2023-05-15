@@ -21,16 +21,6 @@ struct {
 SEC("xdp")
 int my_program(struct xdp_md* ctx)
 {
-    // struct event_data* event;
-    // event = bpf_ringbuf_reserve(&ringbuf_map, sizeof(struct event_data), 0);
-    // if (!event)
-    //     return XDP_DROP;
-
-    // event->message = "Hello, World!\0";
-
-    // bpf_ringbuf_submit(event, 0);
-
-    // __u32 ip_addr;
     void* data_end = (void*)(long)ctx->data_end;
     void* data = (void*)(long)ctx->data;
 
