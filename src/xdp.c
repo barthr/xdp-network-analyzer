@@ -7,24 +7,27 @@
 
 char LICENSE[] SEC("license") = "GPL";
 
+static int __always_inline process_udp_packet(struct xdp_md* ctx, void* offset);
+static int __always_inline process_tcp_packet(struct xdp_md* ctx, void* offset);
+
 const __u32 DEFAULT_XDP_ACTION = XDP_PASS;
 
 struct dnshdr {
-    uint16_t transaction_id;
-    uint8_t rd : 1;
-    uint8_t tc : 1;
-    uint8_t aa : 1;
-    uint8_t opcode : 4;
-    uint8_t qr : 1;
-    uint8_t rcode : 4;
-    uint8_t cd : 1;
-    uint8_t ad : 1;
-    uint8_t z : 1;
-    uint8_t ra : 1;
-    uint16_t q_count;
-    uint16_t ans_count;
-    uint16_t auth_count;
-    uint16_t add_count;
+    __u16 transaction_id;
+    __u8 rd : 1;
+    __u8 tc : 1;
+    __u8 aa : 1;
+    __u8 opcode : 4;
+    __u8 qr : 1;
+    __u8 rcode : 4;
+    __u8 cd : 1;
+    __u8 ad : 1;
+    __u8 z : 1;
+    __u8 ra : 1;
+    __u16 q_count;
+    __u16 ans_count;
+    __u16 auth_count;
+    __u16 add_count;
 };
 
 struct rx_count {
@@ -84,20 +87,47 @@ int my_program(struct xdp_md* ctx)
         bpf_map_update_elem(&incoming_ip_traffic, &src_ip, &(struct rx_count) { .bytes = packet_size, .packets = 1 }, BPF_ANY);
     }
 
+    void* next_header = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
+    // Out of bounds check for the next header
+    if ((next_header + 1) > data_end) {
+        return DEFAULT_XDP_ACTION;
+    }
+
     // Check if data is UDP
-    if (protocol != UDP) {
-        return DEFAULT_XDP_ACTION;
+    if (protocol == UDP) {
+        return process_udp_packet(ctx, next_header);
     }
 
-    struct udphdr* udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
-    if ((void*)(udp + 1) > data_end) {
-        return DEFAULT_XDP_ACTION;
+    if (protocol == TCP) {
+        return process_tcp_packet(ctx, next_header);
     }
 
+    return DEFAULT_XDP_ACTION;
+}
+
+static int __always_inline process_udp_packet(struct xdp_md* ctx, void* offset)
+{
+    void* data = (void*)(long)ctx->data;
+    void* data_end = (void*)(long)ctx->data_end;
+
+    struct udphdr* udp = offset;
     struct dnshdr* dns = data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
-    if ((void*)(udp + 1) > data_end) {
+
+    if ((void*)(dns + 1) > data_end) {
         return DEFAULT_XDP_ACTION;
     }
 
-    return XDP_DROP;
+    if (dns->qr == bpf_htons(0)) {
+        bpf_printk("Opcode: %d", bpf_ntohs(dns->opcode));
+        return XDP_DROP;
+    }
+    bpf_printk("Received DNS");
+
+    return DEFAULT_XDP_ACTION;
+}
+
+static int __always_inline process_tcp_packet(struct xdp_md* ctx, void* offset)
+{
+    struct tcphdr* tcp = offset;
+    return DEFAULT_XDP_ACTION;
 }
