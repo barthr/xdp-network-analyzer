@@ -56,8 +56,8 @@ func main() {
 	_, err = xdpProg.AttachXDP(deviceName)
 	handleError("Failed to attach XDP program", err)
 
-	incomingIpMap, err := bpfModule.GetMap("incoming_ip_traffic")
-	handleError("Failed to retrieve map incoming_ip_traffic", err)
+	// incomingIpMap, err := bpfModule.GetMap("incoming_ip_traffic")
+	// handleError("Failed to retrieve map incoming_ip_traffic", err)
 
 	select {}
 
