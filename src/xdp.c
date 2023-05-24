@@ -10,8 +10,8 @@
 
 char LICENSE[] SEC("license") = "GPL";
 
-static int __always_inline process_udp_packet(struct xdp_md* ctx, void* offset);
-static int __always_inline process_tcp_packet(struct xdp_md* ctx, void* offset);
+static int __always_inline process_udp_packet(cursor* cursor);
+static int __always_inline process_tcp_packet(cursor* cursor);
 
 const __u32 DEFAULT_XDP_ACTION = XDP_PASS;
 
@@ -27,6 +27,7 @@ enum ETH_TYPES {
 enum IP_TYPES {
     UDP = 0x11,
     TCP = 0x06,
+    ICMP = 0x01,
 };
 
 struct {
@@ -39,8 +40,7 @@ struct {
 SEC("xdp")
 int my_program(struct xdp_md* ctx)
 {
-    struct cursor c;
-    cursor_init(&c, ctx);
+    cursor c = cursor_init(ctx);
 
     void* data_end = (void*)(long)ctx->data_end;
     void* data = (void*)(long)ctx->data;
@@ -72,23 +72,28 @@ int my_program(struct xdp_md* ctx)
         bpf_map_update_elem(&incoming_ip_traffic, &src_ip, &(struct rx_count) { .bytes = packet_size, .packets = 1 }, BPF_ANY);
     }
 
-    // Check if data is UDP
-    if (protocol == UDP) {
-        return process_udp_packet(&c);
-    }
+    switch (protocol) {
+        case UDP:
+            return process_udp_packet(&c);
+        case TCP:
+            return process_tcp_packet(&c);
+        case ICMP:
+            return DEFAULT_XDP_ACTION;
+        default:
+            return XDP_DROP;
 
-    if (protocol == TCP) {
-        return process_tcp_packet(&c);
     }
-
-    return DEFAULT_XDP_ACTION;
 }
 
-static int __always_inline process_udp_packet(struct cursor* cursor)
+static int __always_inline process_udp_packet(cursor* cursor)
 {
 
     struct udphdr* udp;
     if (!(udp = parse_udphdr(cursor)))
+        return DEFAULT_XDP_ACTION;
+
+    if (udp->source == bpf_htons(53))
+        bpf_printk("Received DNS: %d\n", dns->ans_count);
         return DEFAULT_XDP_ACTION;
 
     struct dnshdr* dns;
@@ -96,15 +101,13 @@ static int __always_inline process_udp_packet(struct cursor* cursor)
         return DEFAULT_XDP_ACTION;
 
     if (dns->qr == bpf_htons(0)) {
-        bpf_printk("Opcode: %d", bpf_ntohs(dns->opcode));
         return XDP_DROP;
     }
-    bpf_printk("Received DNS");
 
     return DEFAULT_XDP_ACTION;
 }
 
-static int __always_inline process_tcp_packet(struct cursor* cursor)
+static int __always_inline process_tcp_packet(cursor* cursor)
 {
     struct tcphdr* tcp;
     if (!(tcp = parse_tcphdr(cursor)))

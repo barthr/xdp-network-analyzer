@@ -1,3 +1,5 @@
+#pragma once
+
 #include "vmlinux.h"
 
 struct dnshdr {

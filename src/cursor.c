@@ -1,13 +1,17 @@
+#pragma once
+
 #include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 
-struct cursor {
+typedef struct {
     void* pos;
     void* end;
-};
+} cursor;
 
-static __always_inline void cursor_init(struct cursor* c, struct xdp_md* ctx)
+static __always_inline cursor cursor_init(struct xdp_md* ctx)
 {
-    c->end = (void*)(long)ctx->data_end;
-    c->pos = (void*)(long)ctx->data;
+    return (cursor) {
+        .end = (void*)(long)ctx->data_end,
+        .pos = (void*)(long)ctx->data
+    };
 }

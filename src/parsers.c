@@ -1,3 +1,5 @@
+#pragma once
+
 #include "vmlinux.h"
 
 #include "headers.c"
@@ -7,7 +9,7 @@
 
 
 #define PARSE_FUNC_DECLARATION(STRUCT)                                     \
-    static __always_inline struct STRUCT* parse_##STRUCT(struct cursor* c) \
+    static __always_inline struct STRUCT* parse_##STRUCT(cursor* c) \
     {                                                                      \
         struct STRUCT* ret = c->pos;                                       \
         if (c->pos + sizeof(struct STRUCT) > c->end)                       \
