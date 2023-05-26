@@ -73,15 +73,14 @@ int my_program(struct xdp_md* ctx)
     }
 
     switch (protocol) {
-        case UDP:
-            return process_udp_packet(&c);
-        case TCP:
-            return process_tcp_packet(&c);
-        case ICMP:
-            return DEFAULT_XDP_ACTION;
-        default:
-            return XDP_DROP;
-
+    case UDP:
+        return process_udp_packet(&c);
+    case TCP:
+        return process_tcp_packet(&c);
+    case ICMP:
+        return DEFAULT_XDP_ACTION;
+    default:
+        return XDP_DROP;
     }
 }
 
@@ -92,16 +91,15 @@ static int __always_inline process_udp_packet(cursor* cursor)
     if (!(udp = parse_udphdr(cursor)))
         return DEFAULT_XDP_ACTION;
 
-    if (udp->source == bpf_htons(53))
-        bpf_printk("Received DNS: %d\n", dns->ans_count);
-        return DEFAULT_XDP_ACTION;
+    if (udp->source == bpf_htons(53)) {
+        struct dnshdr* dns;
+        if (!(dns = parse_dnshdr(cursor)))
+            return DEFAULT_XDP_ACTION;
 
-    struct dnshdr* dns;
-    if (!(dns = parse_dnshdr(cursor)))
+        if (dns->qr == bpf_htons(0)) {
+            return XDP_DROP;
+        }
         return DEFAULT_XDP_ACTION;
-
-    if (dns->qr == bpf_htons(0)) {
-        return XDP_DROP;
     }
 
     return DEFAULT_XDP_ACTION;
