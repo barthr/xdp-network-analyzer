@@ -44,6 +44,11 @@ struct {
     __uint(max_entries, 1 << 24);
 } incoming_ip_traffic SEC(".maps");
 
+struct {
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 1 << 24);
+} dns_packets SEC(".maps");
+
 SEC("xdp")
 int my_program(struct xdp_md* ctx)
 {
@@ -70,8 +75,9 @@ int my_program(struct xdp_md* ctx)
     __u32 src_ip = ip->saddr;
     __u8 protocol = ip->protocol;
 
-    // Retrieve the rx_count for the ip address in a map
     struct rx_count* rx = bpf_map_lookup_elem(&incoming_ip_traffic, &src_ip);
+
+    debug_bpf_printk("IP: %d", src_ip);
     if (rx) {
         rx->bytes += packet_size;
         rx->packets++;
@@ -79,15 +85,14 @@ int my_program(struct xdp_md* ctx)
         bpf_map_update_elem(&incoming_ip_traffic, &src_ip, &(struct rx_count) { .bytes = packet_size, .packets = 1 }, BPF_ANY);
     }
 
+    // Retrieve the rx_count for the ip address in a map
     switch (protocol) {
     case UDP:
         return process_udp_packet(&c);
     case TCP:
         return process_tcp_packet(&c);
-    case ICMP:
-        return DEFAULT_XDP_ACTION;
     default:
-        return XDP_DROP;
+        return DEFAULT_XDP_ACTION;
     }
 }
 
@@ -101,18 +106,20 @@ static int __always_inline process_udp_packet(cursor* cursor)
     if (udp->source == bpf_htons(53)) {
         debug_bpf_printk("Packet with destination port 53");
 
-        struct dnshdr* dns;
+        dnshdr* dns;
         if (!(dns = parse_dnshdr(cursor)))
             return DEFAULT_XDP_ACTION;
 
-        // Even though we are in de ingress path (XDP only processes ingress) we still check for the qr type to be equal to 0
-        if (dns->qr != bpf_htons(0)) {
+        if (dns->qr != 1) {
             return DEFAULT_XDP_ACTION;
         }
 
-        debug_bpf_printk("Packet with dns qr response to 0");
+        debug_bpf_printk("Packet with dns response, qr: %d sending to user space", dns->qr);
 
-        return DEFAULT_XDP_ACTION;
+        __u64 packet_size = sizeof(dnshdr);
+        dnshdr dns_to_user_space = *dns;
+
+        bpf_ringbuf_output(&dns_packets, &dns_to_user_space, packet_size, 0);
     }
 
     return DEFAULT_XDP_ACTION;

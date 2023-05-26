@@ -6,10 +6,27 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"time"
 
 	bpf "github.com/aquasecurity/libbpfgo"
 )
+
+type DnsHeader struct {
+	TransactionId uint16
+	RD            uint8
+	TC            uint8
+	AA            uint8
+	OpCode        uint8
+	QR            uint8
+	RCode         uint8
+	CD            uint8
+	AD            uint8
+	Z             uint8
+	RA            uint8
+	QCount        uint16
+	AnsCount      uint16
+	AuthCount     uint16
+	AddCount      uint16
+}
 
 type RxCount struct {
 	Bytes   uint64
@@ -56,33 +73,25 @@ func main() {
 	_, err = xdpProg.AttachXDP(deviceName)
 	handleError("Failed to attach XDP program", err)
 
-	// incomingIpMap, err := bpfModule.GetMap("incoming_ip_traffic")
-	// handleError("Failed to retrieve map incoming_ip_traffic", err)
+	incomingIpMap, err := bpfModule.GetMap("incoming_ip_traffic")
+	handleError("Failed to retrieve map incoming_ip_traffic", err)
 
-	select {}
+	dnsPacketsChannel := make(chan []byte)
+	rb, err := bpfModule.InitRingBuf("dns_packets", dnsPacketsChannel)
+	handleError("Failed creating ring buffer", err)
+	defer rb.Stop()
+	rb.Poll(300)
 
 	for {
-		// ip := ip2Long("192.168.0.114")
-		// if ip == 3232235634 {
-		// 	fmt.Println("great")
-		// }
-		// value, err := incomingIpMap.GetValue(unsafe.Pointer(&ip))
-		// if err != nil {
-		// 	continue
-		// }
-
-		// var rxCount RxCount
-		// if err := binary.Read(bytes.NewBuffer(value), binary.LittleEndian, &rxCount); err != nil {
-		// 	fmt.Printf("Failed to parse struct value: %v\n", err)
-		// 	return
-		// }
-		// if rxCount.Packets == 0 {
-		// 	continue
-		// }
-
-		// // Print in kilobytes
-		// fmt.Printf("%d KB\n", rxCount.Bytes/(1000))
-		time.Sleep(1 * time.Second)
+		select {
+		case ev := <-dnsPacketsChannel:
+			var header DnsHeader
+			if err := unmarshal(ev, &header, binary.LittleEndian); err != nil {
+				fmt.Printf("Failed unmarshalling binary pattern to DnsHeader: %s", err)
+				continue
+			}
+			fmt.Printf("header: %v\n", header.QR)
+		}
 	}
 }
 
@@ -92,4 +101,8 @@ func handleError(message string, err error) {
 	}
 	fmt.Printf("%s: %s\n", message, err)
 	os.Exit(-1)
+}
+
+func unmarshal(data []byte, v any, endianess binary.ByteOrder) error {
+	return binary.Read(bytes.NewBuffer(data), endianess, v)
 }
