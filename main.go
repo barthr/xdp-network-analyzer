@@ -73,9 +73,6 @@ func main() {
 	_, err = xdpProg.AttachXDP(deviceName)
 	handleError("Failed to attach XDP program", err)
 
-	incomingIpMap, err := bpfModule.GetMap("incoming_ip_traffic")
-	handleError("Failed to retrieve map incoming_ip_traffic", err)
-
 	dnsPacketsChannel := make(chan []byte)
 	rb, err := bpfModule.InitRingBuf("dns_packets", dnsPacketsChannel)
 	handleError("Failed creating ring buffer", err)
