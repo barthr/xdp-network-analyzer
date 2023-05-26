@@ -22,7 +22,7 @@ tasks:
     desc: Build the bpf program
     cmds:
       - docker run -w /src --rm -it -v $(pwd)/src:/src bpf-builder
-        clang -I/usr/include/bpf -g -O2 -target bpf -c xdp.c -o xdp.o
+        clang -I/usr/include/bpf -D DEBUG -g -O2 -target bpf -c xdp.c -o xdp.o
 
   build_kernel_headers:
     desc: Build the kernel headers required

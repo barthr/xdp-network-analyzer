@@ -13,6 +13,13 @@ char LICENSE[] SEC("license") = "GPL";
 static int __always_inline process_udp_packet(cursor* cursor);
 static int __always_inline process_tcp_packet(cursor* cursor);
 
+#ifdef DEBUG
+#define debug_bpf_printk(fmt, ...) \
+    bpf_printk(fmt, ##__VA_ARGS__);
+#else
+#define debug_bpf_printk(fmt, ...)
+#endif
+
 const __u32 DEFAULT_XDP_ACTION = XDP_PASS;
 
 struct rx_count {
@@ -92,13 +99,19 @@ static int __always_inline process_udp_packet(cursor* cursor)
         return DEFAULT_XDP_ACTION;
 
     if (udp->source == bpf_htons(53)) {
+        debug_bpf_printk("Packet with destination port 53");
+
         struct dnshdr* dns;
         if (!(dns = parse_dnshdr(cursor)))
             return DEFAULT_XDP_ACTION;
 
-        if (dns->qr == bpf_htons(0)) {
-            return XDP_DROP;
+        // Even though we are in de ingress path (XDP only processes ingress) we still check for the qr type to be equal to 0
+        if (dns->qr != bpf_htons(0)) {
+            return DEFAULT_XDP_ACTION;
         }
+
+        debug_bpf_printk("Packet with dns qr response to 0");
+
         return DEFAULT_XDP_ACTION;
     }
 
