@@ -47,3 +47,7 @@ func Processes() ([]*UnixProcess, error) {
 
 	return results, nil
 }
+
+func FindByPid(pid int) (*UnixProcess, error) {
+	return newUnixProcess(pid)
+}
