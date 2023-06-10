@@ -11,3 +11,5 @@ vendor
 /**/.vscode
 
 vmlinux.h
+
+*.log
