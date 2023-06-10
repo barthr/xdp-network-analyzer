@@ -75,6 +75,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case selectPidMessage:
 		m.activePid = msg.pid
 		m.currentView = pidMonitor
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEscape:
+			if m.currentView != processOverview {
+				m.activePid = 0
+				m.currentView = processOverview
+			}
+		}
 	}
 
 	switch m.currentView {
@@ -82,7 +90,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.processView, cmd = m.processView.Update(msg)
 		cmds = append(cmds, cmd)
 	case pidMonitor:
-		m.pidMonitorView, cmd = m.pidMonitorView.Update(msg)
+		model := &PidMonitorModel{pid: m.activePid}
+		model.Init()
+		m.pidMonitorView, cmd = model.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
