@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  KERNEL_HEADER_PATH: /usr/src/kernels/6.2.14-200.fc37.x86_64
+  KERNEL_HEADER_PATH: /usr/src/kernels/6.2.15-300.fc38.x86_64
   LIBBPF_OBJ: tools/bpf/resolve_btfids/libbpf/libbpf.a
 
 tasks:
