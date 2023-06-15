@@ -64,7 +64,7 @@ func (p *Probe) Attach(probeType ProbeType, pid ...int) error {
 	case ENTRY:
 		p.probe, err = p.bpfProgam.AttachUprobe(probePid, p.Executable, offset)
 	case RETURN:
-		p.probe, err = p.bpfProgam.AttachUprobe(probePid, p.Executable, offset)
+		p.probe, err = p.bpfProgam.AttachURetprobe(probePid, p.Executable, offset)
 	default:
 		return errors.New("trying to attach unknown probe type supported are: ENTRY or RETURN")
 	}
