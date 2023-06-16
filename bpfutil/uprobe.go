@@ -3,9 +3,10 @@ package bpfutil
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	bpf "github.com/aquasecurity/libbpfgo"
 	"github.com/aquasecurity/libbpfgo/helpers"
-	"os"
 )
 
 type ProbeType int

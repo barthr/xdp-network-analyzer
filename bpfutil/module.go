@@ -5,14 +5,26 @@ import (
 	bpf "github.com/aquasecurity/libbpfgo"
 )
 
+var (
+	// Currently we have these as "global" variables since they are used throughout the program
+	DnsModule *bpf.Module
+)
+
 func LoadModuleFromFile(path string) (*bpf.Module, error) {
-	module, err := bpf.NewModuleFromFile(path)
+	var err error
+	ActiveModule, err := bpf.NewModuleFromFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed loading bpf module on path %s: %w", path, err)
 	}
-	err = module.BPFLoadObject()
+	err = ActiveModule.BPFLoadObject()
 	if err != nil {
 		return nil, fmt.Errorf("failed loading bpf module on path %s: %w", path, err)
 	}
-	return module, nil
+	return ActiveModule, nil
+}
+
+func LoadDnsLookupModule(path string) error {
+	module, err := LoadModuleFromFile(path)
+	DnsModule = module
+	return err
 }
