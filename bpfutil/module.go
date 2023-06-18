@@ -24,7 +24,7 @@ func LoadModuleFromFile(path string) (*bpf.Module, error) {
 }
 
 func LoadDnsLookupModule(path string) error {
-	module, err := LoadModuleFromFile(path)
-	DnsModule = module
+	var err error
+	DnsModule, err = LoadModuleFromFile(path)
 	return err
 }

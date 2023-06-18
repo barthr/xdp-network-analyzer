@@ -24,6 +24,10 @@ type Uprobe struct {
 	probe     *bpf.BPFLink
 }
 
+func (p *Uprobe) Clone() *Uprobe {
+	return &Uprobe{Executable: p.Executable, Symbol: p.Symbol}
+}
+
 func (p *Uprobe) LoadProgram(module *bpf.Module, progName string) error {
 	var err error
 	p.bpfProgam, err = module.GetProgram(progName)
