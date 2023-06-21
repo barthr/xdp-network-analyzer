@@ -2,8 +2,9 @@ package bpfutil
 
 import (
 	"fmt"
-	bpf "github.com/aquasecurity/libbpfgo"
 	"syscall"
+
+	bpf "github.com/aquasecurity/libbpfgo"
 )
 
 type Tc struct {
@@ -43,4 +44,8 @@ func (tc *Tc) Attach(attachPoint bpf.TcAttachPoint) error {
 		return fmt.Errorf("failed attaching hook on interface %s: %w", tc.InterfaceName, err)
 	}
 	return nil
+}
+
+func (tc *Tc) Close() error {
+	return tc.hook.Destroy()
 }
