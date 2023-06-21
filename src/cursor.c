@@ -20,6 +20,6 @@ static cursor cursor_init_skb(struct __sk_buff* buff)
 {
     return (cursor) {
         .end = (void*)(long)buff->data_end,
-        .pos = (void*)(long)buff->data
+        .pos = (void*)(long)buff->data,
     };
 }

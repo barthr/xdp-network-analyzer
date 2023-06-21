@@ -13,19 +13,14 @@ char LICENSE[] SEC("license") = "GPL";
 
 const __u32 DEFAULT_XDP_ACTION = XDP_PASS;
 
-enum IP_TYPES {
-    UDP = 0x11,
-    TCP = 0x06,
-    ICMP = 0x01,
-};
-
 enum ETH_TYPES {
     IPV4 = 0x0800,
 };
 
+#define UDP 17
 #define DNS_QUERY 0
 #define DNS_RESPONSE 1
-#define MAX_HOSTNAME_SIZE 256
+#define MAX_HOSTNAME_SIZE 255
 
 static int process_udp_packet(cursor* cursor);
 static void _parse_dns_query(cursor* cursor, struct dnshdr* dns);
@@ -48,6 +43,7 @@ int my_program(struct __sk_buff* skb)
 
     __u8 protocol = ip->protocol;
     if (protocol != UDP) {
+        debug_bpf_printk("protocol %d", protocol);
         return DEFAULT_XDP_ACTION;
     }
 
@@ -62,6 +58,7 @@ static int __always_inline process_udp_packet(cursor* cursor)
     if (!(udp = parse_udphdr(cursor)))
         return DEFAULT_XDP_ACTION;
 
+    debug_bpf_printk("dest %d src %d", bpf_ntohs(udp->dest), bpf_ntohs(udp->source));
     // We only process dns query and response packets
     if (udp->dest != bpf_htons(53) || udp->source != bpf_htons(53)) {
         return DEFAULT_XDP_ACTION;
@@ -72,8 +69,8 @@ static int __always_inline process_udp_packet(cursor* cursor)
         return DEFAULT_XDP_ACTION;
 
     __u8 qr = dns->flags & (1 << 15);
+    debug_bpf_printk("flags %d", qr);
     if (qr == DNS_QUERY) {
-        debug_bpf_printk("QUERY");
         _parse_dns_query(cursor, dns);
         return DEFAULT_XDP_ACTION;
     }
@@ -88,9 +85,11 @@ static void __always_inline _parse_dns_query(cursor* cursor, struct dnshdr* dns)
         return;
     }
 
-    struct dns_query* dns_query;
-    if (!(dns_query = parse_dns_query(cursor)))
-        return;
+    debug_bpf_printk("SOMETHING COUNT");
+
+    // struct dns_query* dns_query;
+    // if (!(dns_query = parse_dns_query(cursor)))
+    //     return;
 
     // Now we parse the hostname
     // Create buffer to hold the hostname
@@ -103,22 +102,19 @@ static void __always_inline _parse_dns_query(cursor* cursor, struct dnshdr* dns)
         }
 
         __u64* length = cursor->pos++;
-        if (length == 0) {
-            // So the hostname is empty
-            break;
-        }
-
         debug_bpf_printk("length %d", length);
+        //     if (length == 0) {
+        //         // So the hostname is empty
+        //         break;
+        //     }
 
-        // The hostname format works as follows:
-        // integer of length before the next dot
-        // then the string
-        // repeat
-        // so: test.test.com
-        // is in protocol the following
-        // 4test4test3com
-        cursor->pos += *length;
+        //     // The hostname format works as follows:
+        //     // integer of length before the next dot
+        //     // then the string
+        //     // repeat
+        //     // so: test.test.com
+        //     // is in protocol the following
+        //     // 4test4test3com
+        //     cursor->pos += *length;
     }
-
-    debug_bpf_printk("test %s", hostname);
 }

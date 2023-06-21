@@ -16,6 +16,7 @@ struct dnshdr {
 
 // The dnsquery structure defines the format of a DNS query section.
 struct dns_query {
+    __u8 qname[50]; // domain name
     __u16 qtype; // The type of the DNS query.
     __u16 qclass; // The class of the DNS query.
 } __attribute__((packed));
