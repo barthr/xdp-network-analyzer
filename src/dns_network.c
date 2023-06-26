@@ -7,6 +7,7 @@
 #include "cursor.c"
 #include "debug.h"
 #include "headers.h"
+#include "maps.h"
 #include "parsers.c"
 
 char LICENSE[] SEC("license") = "GPL";
@@ -81,7 +82,6 @@ static void __always_inline _parse_dns_query(cursor* cursor, struct dnshdr* dns)
 {
     // We expect a question otherwise the packet is malformed
     if (dns->qdcount <= 0) {
-        debug_bpf_printk("NO COUNT");
         return;
     }
 #define check_packet_boundary                                   \
@@ -91,29 +91,37 @@ static void __always_inline _parse_dns_query(cursor* cursor, struct dnshdr* dns)
     }
 
     char hostname[MAX_HOSTNAME_SIZE] = { 0 };
-    __u32 index = 0;
     check_packet_boundary;
 
     __u32 domain_part_length = *(char*)(cursor->pos++);
-    for (__u32 i = 1; i < MAX_HOSTNAME_SIZE; i++) {
+    for (__u32 i = 0; i < MAX_HOSTNAME_SIZE; i++) {
         check_packet_boundary;
         if (*(char*)(cursor->pos) == 0) {
-            hostname[++i] = '\0';
+            hostname[i + 1] = '\0';
             debug_bpf_printk("hostname: %s", hostname);
             return;
         }
         char ch = *(char*)(cursor->pos++);
         if (domain_part_length == 0) {
             domain_part_length = ch;
-            hostname[index++] = '.';
+            hostname[i] = '.';
         } else {
             domain_part_length--;
-            hostname[index++] = ch;
+            hostname[i] = ch;
         }
     }
 
-    // The next part is the actual DNS query (without hostname)
-    // struct dns_query* dnsq;
+    // if (value) {
+    //     //
+    // }
+    // if (!value) {
+    //     debug_bpf_printk("Hostname not found %s", hostname);
+    //     // Send event for the given hostname
+    //     // We also need to store the tx id in the map so we can correlate the response
+    // } else {
+    //     debug_bpf_printk("value %d", value);
+    // }
+    // The next part is the actual DNS query(without hostname) struct dns_query* dnsq;
     // if (!(dnsq = parse_dns_query(cursor))) {
     //     return;
     // }
