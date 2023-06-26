@@ -2,6 +2,8 @@
 
 #include "vmlinux.h"
 
+#define MAX_HOSTNAME_SIZE 255
+
 // The dnshdr structure defines the format of a DNS packet header.
 // It is a packed structure to ensure that the compiler doesn't insert any padding
 // between the members, which matches the on-wire format of a DNS packet.
@@ -23,6 +25,7 @@ struct dnshdr {
 
 // The dnsquery structure defines the format of a DNS query section.
 struct dns_query {
+    char hostname[MAX_HOSTNAME_SIZE];
     __u16 qtype; // The type of the DNS query.
     __u16 qclass; // The class of the DNS query.
 } __attribute__((packed));
