@@ -1,5 +1,6 @@
 #pragma once
 
+#include "debug.h"
 #include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 

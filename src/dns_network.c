@@ -13,10 +13,9 @@ char LICENSE[] SEC("license") = "GPL";
 
 const __u32 DEFAULT_XDP_ACTION = XDP_PASS;
 
-enum ETH_TYPES {
-    IPV4 = 0x0800,
-};
-
+#define IPV4 0x0800
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define TC_PASS 0
 #define UDP 17
 #define DNS_QUERY 0
 #define DNS_RESPONSE 1
@@ -32,19 +31,20 @@ int my_program(struct __sk_buff* skb)
 
     struct ethhdr* ethhdr;
     if (!(ethhdr = parse_ethhdr(&c)))
-        return DEFAULT_XDP_ACTION;
+        return TC_PASS;
 
-    if (bpf_ntohs(ethhdr->h_proto) != IPV4)
-        return DEFAULT_XDP_ACTION;
+    if (bpf_ntohs(ethhdr->h_proto) != IPV4) {
+        return TC_PASS;
+    }
 
     struct iphdr* ip;
-    if (!(ip = parse_iphdr(&c)))
-        return DEFAULT_XDP_ACTION;
+    if (!(ip = parse_iphdr(&c))) {
+        return TC_PASS;
+    }
 
     __u8 protocol = ip->protocol;
     if (protocol != UDP) {
-        debug_bpf_printk("protocol %d", protocol);
-        return DEFAULT_XDP_ACTION;
+        return TC_PASS;
     }
 
     return process_udp_packet(&c);
@@ -55,66 +55,70 @@ static int __always_inline process_udp_packet(cursor* cursor)
 
     struct udphdr* udp;
 
-    if (!(udp = parse_udphdr(cursor)))
-        return DEFAULT_XDP_ACTION;
+    if (!(udp = parse_udphdr(cursor))) {
+        return TC_PASS;
+    }
 
-    debug_bpf_printk("dest %d src %d", bpf_ntohs(udp->dest), bpf_ntohs(udp->source));
-    // We only process dns query and response packets
-    if (udp->dest != bpf_htons(53) || udp->source != bpf_htons(53)) {
-        return DEFAULT_XDP_ACTION;
+    // We only process dns egress query packets (for now)
+    if (bpf_ntohs(udp->dest) != 53) {
+        return TC_PASS;
     }
 
     struct dnshdr* dns;
-    if (!(dns = parse_dnshdr(cursor)))
-        return DEFAULT_XDP_ACTION;
-
-    __u8 qr = dns->flags & (1 << 15);
-    debug_bpf_printk("flags %d", qr);
-    if (qr == DNS_QUERY) {
-        _parse_dns_query(cursor, dns);
-        return DEFAULT_XDP_ACTION;
+    if (!(dns = parse_dnshdr(cursor))) {
+        return TC_PASS;
     }
 
-    return DEFAULT_XDP_ACTION;
+    if (dns->opcode == DNS_QUERY) {
+        _parse_dns_query(cursor, dns);
+        return TC_PASS;
+    }
+
+    return TC_PASS;
 }
 
 static void __always_inline _parse_dns_query(cursor* cursor, struct dnshdr* dns)
 {
     // We expect a question otherwise the packet is malformed
     if (dns->qdcount <= 0) {
+        debug_bpf_printk("NO COUNT");
         return;
     }
-
-    debug_bpf_printk("SOMETHING COUNT");
-
-    // struct dns_query* dns_query;
-    // if (!(dns_query = parse_dns_query(cursor)))
-    //     return;
-
-    // Now we parse the hostname
-    // Create buffer to hold the hostname
-    char hostname[MAX_HOSTNAME_SIZE] = { 0 };
-
-    for (__u32 i = 0; i < MAX_HOSTNAME_SIZE; i++) {
-        if (cursor->pos + 1 > cursor->end) {
-            debug_bpf_printk("error: boundary of packet exceeded");
-            break;
-        }
-
-        __u64* length = cursor->pos++;
-        debug_bpf_printk("length %d", length);
-        //     if (length == 0) {
-        //         // So the hostname is empty
-        //         break;
-        //     }
-
-        //     // The hostname format works as follows:
-        //     // integer of length before the next dot
-        //     // then the string
-        //     // repeat
-        //     // so: test.test.com
-        //     // is in protocol the following
-        //     // 4test4test3com
-        //     cursor->pos += *length;
+#define check_packet_boundary                                   \
+    if (cursor->pos + 1 > cursor->end) {                        \
+        debug_bpf_printk("error: boundary of packet exceeded"); \
+        return;                                                 \
     }
+
+    char hostname[MAX_HOSTNAME_SIZE] = { 0 };
+    __u32 index = 0;
+    check_packet_boundary;
+
+    __u32 domain_part_length = *(char*)(cursor->pos++);
+    for (__u32 i = 1; i < MAX_HOSTNAME_SIZE; i++) {
+        check_packet_boundary;
+        if (*(char*)(cursor->pos) == 0) {
+            hostname[++i] = '\0';
+            debug_bpf_printk("hostname: %s", hostname);
+            return;
+        }
+        char ch = *(char*)(cursor->pos++);
+        if (domain_part_length == 0) {
+            domain_part_length = ch;
+            hostname[index++] = '.';
+        } else {
+            domain_part_length--;
+            hostname[index++] = ch;
+        }
+    }
+
+    // The next part is the actual DNS query (without hostname)
+    // struct dns_query* dnsq;
+    // if (!(dnsq = parse_dns_query(cursor))) {
+    //     return;
+    // }
+
+    // Lookup hostname in
+
+    // Do something with it!?
 }

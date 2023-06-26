@@ -8,7 +8,6 @@ import (
 
 var (
 	Pid *PidRepository
-	key = 1
 )
 
 type PidRepository struct {
@@ -24,9 +23,12 @@ func NewPidRepository(module *bpf.Module, name string) (*PidRepository, error) {
 }
 
 func (p *PidRepository) Save(pid int) error {
-	return p.pidMap.Update(unsafe.Pointer(&key), unsafe.Pointer(&pid))
+	if err := p.Clear(pid); err != nil {
+		return err
+	}
+	return p.pidMap.Update(unsafe.Pointer(&pid), unsafe.Pointer(&pid))
 }
 
 func (p *PidRepository) Clear(pid int) error {
-	return p.pidMap.DeleteKey(unsafe.Pointer(&key))
+	return p.pidMap.DeleteKey(unsafe.Pointer(&pid))
 }
