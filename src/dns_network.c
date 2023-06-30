@@ -23,7 +23,7 @@ const __u32 DEFAULT_XDP_ACTION = XDP_PASS;
 #define MAX_HOSTNAME_SIZE 255
 
 static int process_udp_packet(cursor* cursor);
-static int _parse_dns_query(cursor* cursor, struct dns_query* query);
+static int _parse_dns_query(cursor* cursor, dns_event* ev);
 
 SEC("tc")
 int my_program(struct __sk_buff* skb)
@@ -77,18 +77,30 @@ static int __always_inline process_udp_packet(cursor* cursor)
         return TC_PASS;
     }
 
-    struct dns_query query = {
-        .hostname = { 0 }
+    dns_event ev = {
+        .type = DNS_REQUEST_PACKET,
+        .pid = 1,
     };
 
-    if (_parse_dns_query(cursor, &query) != 1) {
-        debug_bpf_printk("hostname: %s", query.hostname);
+    if (_parse_dns_query(cursor, &ev) != 0) {
+        return TC_PASS;
     };
+
+    debug_bpf_printk("hostname %s", ev.hostname);
+
+    __u32* pid = bpf_map_lookup_elem(&hostname_to_pid, &ev.hostname);
+    if (!pid) {
+        debug_bpf_printk("No pid found for hostname %s", ev.hostname);
+        return TC_PASS;
+    }
+    // Somehow include packet as well (?payload) although this could be arbitrary size long
+    // We leave this for now as we just record the events itself
+    bpf_ringbuf_output(&dns_events, &ev, sizeof(ev), 0);
 
     return TC_PASS;
 }
 
-static int _parse_dns_query(cursor* cursor, struct dns_query* query)
+static int _parse_dns_query(cursor* cursor, dns_event* ev)
 {
     // We expect a question otherwise the packet is malformed
 #define check_packet_boundary                                   \
@@ -104,27 +116,27 @@ static int _parse_dns_query(cursor* cursor, struct dns_query* query)
         check_packet_boundary;
 
         if (*(char*)(cursor->pos) == 0) {
-            query->hostname[++i] = '\0';
+            ev->hostname[++i] = '\0';
             break;
         }
         char ch = *(char*)(cursor->pos++);
         if (domain_part_length == 0) {
             domain_part_length = ch;
-            query->hostname[i] = '.';
+            ev->hostname[i] = '.';
         } else {
             domain_part_length--;
-            query->hostname[i] = ch;
+            ev->hostname[i] = ch;
         }
     }
 
-    // Parse remaining fields of dns query
-    if (cursor->pos + sizeof(__u16) * 2 > cursor->end) {
-        return -1;
-    }
+    // // Parse remaining fields of dns query
+    // if (cursor->pos + sizeof(__u16) * 2 > cursor->end) {
+    //     return -1;
+    // }
 
-    query->qtype = *(__u16*)cursor->pos;
-    query->qclass = *(__u16*)cursor->pos + sizeof(__u16);
-    cursor->pos += sizeof(__u16) * 2;
+    // query->qtype = *(__u16*)cursor->pos;
+    // query->qclass = *(__u16*)cursor->pos + sizeof(__u16);
+    // cursor->pos += sizeof(__u16) * 2;
 
     return 0;
 }

@@ -15,6 +15,7 @@ struct {
     __type(key, char[256]);
     __type(value, __u32); // PID
     __uint(max_entries, 2048); // Currently we allow for 2048 entries
+    __uint(pinning, LIBBPF_PIN_BY_NAME);
 } hostname_to_pid SEC(".maps");
 
 typedef enum {
@@ -33,4 +34,5 @@ typedef struct {
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
     __uint(max_entries, 1 << 24);
+    __uint(pinning, LIBBPF_PIN_BY_NAME);
 } dns_events SEC(".maps");
