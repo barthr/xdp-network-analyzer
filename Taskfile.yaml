@@ -18,11 +18,17 @@ tasks:
     cmds:
       - docker build -t bpf-builder -f Dockerfile .
 
-  build_xdp:
+  build_dns_network:
     desc: Build the bpf program
     cmds:
       - docker run -w /src --rm -it -v $(pwd)/src:/src bpf-builder
-        clang -I/usr/include/bpf -D DEBUG -g -O2 -target bpf -c xdp.c -o xdp.o
+        clang -I/usr/include/bpf -D DEBUG -g -O2 -target bpf -c dns_network.c -o dns_network.o
+
+  build_dns_probe:
+    desc: Build the dns probe bpf program
+    cmds:
+      - docker run -w /src --rm -it -v $(pwd)/src:/src bpf-builder
+        clang -I/usr/include/bpf -D DEBUG -g -O2 -target bpf -c dns_lookup_probe.c -o dns_lookup_probe.o
 
   build_kernel_headers:
     desc: Build the kernel headers required
