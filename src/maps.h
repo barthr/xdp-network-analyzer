@@ -8,6 +8,7 @@ struct {
     __type(key, __u8); // Fixed key
     __type(value, __u64);
     __uint(max_entries, 1);
+    __uint(pinning, LIBBPF_PIN_BY_NAME);
 } pid_monitor_map SEC(".maps");
 
 struct {
