@@ -37,6 +37,10 @@ func (e EventType) String() string {
 		return "INVOKE_RETRIEVE_HOSTNAME"
 	case INVOKE_RETRIEVE_HOSTNAME_RETURN:
 		return "INVOKE_RETRIEVE_HOSTNAME_RETURN"
+	case DNS_REQUEST_PACKET:
+		return "DNS_REQUEST_PACKET"
+	case DNS_RESPONSE_PACKET:
+		return "DNS_RESPONSE_PACKET"
 	default:
 		return ""
 	}
