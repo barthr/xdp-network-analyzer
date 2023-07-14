@@ -6,9 +6,7 @@ import (
 	bpf "github.com/aquasecurity/libbpfgo"
 )
 
-var (
-	Pid *PidRepository
-)
+var Pid *PidRepository
 
 type PidRepository struct {
 	pidMap *bpf.BPFMap
