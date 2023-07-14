@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"syscall"
 	"xdp-network-analyzer/bpfutil"
@@ -77,6 +78,18 @@ func main() {
 
 	err = tc.Attach(bpf.BPFTcEgress)
 	handleError("Failed attaching tc program", err)
+
+	probe := bpfutil.Uprobe{
+		Executable: "/lib64/libc.so.6",
+		Symbol:     "getaddrinfo",
+	}
+	var pid = 1
+	if err := probe.LoadProgram(bpfutil.DnsModule, "inspect_dns_lookup"); err != nil {
+		log.Fatalf("Failed loading program from module for pid %d to monitor dns: %s", pid, err)
+	}
+	if err := probe.Attach(bpfutil.PROBE_TYPE_ENTRY, pid); err != nil {
+		log.Fatalf("Failed attaching probe for pid %d to monitor dns: %s", pid, err)
+	}
 
 	go func() {
 		err = buffer.Listen(func(elem dnsEvent) {
