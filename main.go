@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"os"
 	"syscall"
-	"unsafe"
 	"xdp-network-analyzer/bpfutil"
 	"xdp-network-analyzer/repository"
 	"xdp-network-analyzer/ui"
@@ -16,17 +14,6 @@ import (
 const (
 	SO_ATTACH_BPF = 0x32                     // 50
 	SO_DETACH_BPF = syscall.SO_DETACH_FILTER // 27
-)
-
-func htons(i uint16) uint16 {
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i)
-	return *(*uint16)(unsafe.Pointer(&b[0]))
-}
-
-const (
-	executable = "/lib64/libc.so.6"
-	symbol     = "getaddrinfo"
 )
 
 type EventType uint32
@@ -71,10 +58,6 @@ func main() {
 		os.Exit(-1)
 	}
 
-	//entryProbe := &bpfutil.Uprobe{
-	//	Executable: "/lib64/libc.so.6",
-	//	Symbol:     "getaddrinfo",
-	//}
 	err := bpfutil.LoadDnsLookupModule("src/dns_lookup_probe.o")
 	handleError("Failed loading dns module from file", err)
 
