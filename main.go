@@ -7,7 +7,6 @@ import (
 	"syscall"
 	"xdp-network-analyzer/bpfutil"
 	"xdp-network-analyzer/repository"
-	"xdp-network-analyzer/ui"
 
 	bpf "github.com/aquasecurity/libbpfgo"
 )
@@ -48,12 +47,12 @@ type dnsEvent struct {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Please provide device name")
+	deviceName := "any"
+	if len(os.Args) > 1 {
+		deviceName = os.Args[1]
 		os.Exit(-1)
 	}
 
-	deviceName := os.Args[1]
 	if deviceName == "" {
 		fmt.Println("Please provide device name")
 		os.Exit(-1)
@@ -160,8 +159,6 @@ func main() {
 
 	repository.Pid, err = repository.NewPidRepository(bpfutil.DnsModule, "pid_monitor_map")
 	handleError("Failed creating Pid repository", err)
-
-	ui.StartTea()
 }
 
 func handleError(message string, err error) {
