@@ -86,8 +86,6 @@ static int __always_inline process_udp_packet(cursor* cursor)
         return TC_PASS;
     };
 
-    debug_bpf_printk("hostname %s", ev.hostname);
-
     __u32* pid = bpf_map_lookup_elem(&hostname_to_pid, &ev.hostname);
     if (!pid) {
         debug_bpf_printk("No pid found for hostname %s", ev.hostname);
