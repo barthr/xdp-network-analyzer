@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	// Currently we have these as "global" variables since they are used throughout the program
+	// currently we have these as "global" variables since they are used throughout the program
 	DnsModule *bpf.Module
 )
 

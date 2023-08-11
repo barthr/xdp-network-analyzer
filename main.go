@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -46,16 +47,21 @@ type dnsEvent struct {
 	Hostname  [256]byte
 }
 
-func main() {
-	deviceName := "any"
-	if len(os.Args) > 1 {
-		deviceName = os.Args[1]
-		os.Exit(-1)
-	}
+var (
+	pid    = flag.Int("pid", 0, "specify the pid for dns tracing")
+	device = flag.String("i", "any", "specify the ifaces to listen on or any")
+)
 
-	if deviceName == "" {
-		fmt.Println("Please provide device name")
-		os.Exit(-1)
+func main() {
+	flag.Parse()
+
+	if pid == nil {
+		fmt.Println("Specify a pid using -pid")
+		os.Exit(1)
+	}
+	if device == nil {
+		fmt.Println("Specify devices to listen on using -i")
+		os.Exit(1)
 	}
 
 	err := bpfutil.LoadDnsLookupModule("src/dns_lookup_probe.o")
@@ -67,26 +73,16 @@ func main() {
 	tcModule, err := bpfutil.LoadModuleFromFile("src/dns_network.o")
 	handleError("Failed loading dns network module from file", err)
 
-	tc := bpfutil.Tc{
-		InterfaceName: deviceName,
-	}
-	defer tc.Close()
-
-	err = tc.LoadProgram(tcModule, "my_program")
-	handleError("Failed loading dns network program", err)
-
-	err = tc.Attach(bpf.BPFTcEgress)
-	handleError("Failed attaching tc program", err)
+	attachTc(tcModule, *device)
 
 	probe := bpfutil.Uprobe{
 		Executable: "/lib64/libc.so.6",
 		Symbol:     "getaddrinfo",
 	}
-	var pid = 1
 	if err := probe.LoadProgram(bpfutil.DnsModule, "inspect_dns_lookup"); err != nil {
 		log.Fatalf("Failed loading program from module for pid %d to monitor dns: %s", pid, err)
 	}
-	if err := probe.Attach(bpfutil.PROBE_TYPE_ENTRY, pid); err != nil {
+	if err := probe.Attach(bpfutil.PROBE_TYPE_ENTRY, *pid); err != nil {
 		log.Fatalf("Failed attaching probe for pid %d to monitor dns: %s", pid, err)
 	}
 
@@ -159,6 +155,19 @@ func main() {
 
 	repository.Pid, err = repository.NewPidRepository(bpfutil.DnsModule, "pid_monitor_map")
 	handleError("Failed creating Pid repository", err)
+
+	select {}
+}
+
+func attachTc(module *bpf.Module, deviceName string) {
+	tc := bpfutil.Tc{InterfaceName: deviceName}
+	defer tc.Close()
+
+	err := tc.LoadProgram(module, "my_program")
+	handleError("Failed loading dns network program", err)
+
+	err = tc.Attach(bpf.BPFTcEgress)
+	handleError("Failed attaching tc program", err)
 }
 
 func handleError(message string, err error) {
