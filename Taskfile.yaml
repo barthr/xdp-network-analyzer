@@ -1,8 +1,9 @@
 version: '3'
 
 vars:
-  KERNEL_HEADER_PATH: /usr/src/kernels/6.3.12-200.fc38.x86_64
-  LIBBPF_OBJ: tools/bpf/resolve_btfids/libbpf/libbpf.a
+  KERNEL_HEADER_PATH: /usr/src/kernels/$(uname -r)
+  LIBBPF_OBJ: libbpf/src/libbpf.a
+  LIBBPF_PATH: libbpf/src/
 
 tasks:
   init-network:
@@ -39,6 +40,6 @@ tasks:
     desc: Build control plane
     cmds:
       - CC=clang
-        CGO_CFLAGS="-I/usr/include/bpf"
-        CGO_LDFLAGS="{{.KERNEL_HEADER_PATH}}/{{.LIBBPF_OBJ}}"
+        CGO_CFLAGS="-I{{.LIBBPF_PATH}}"
+        CGO_LDFLAGS="{{.LIBBPF_OBJ}}"
         go build -o control-plane .

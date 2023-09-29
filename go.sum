@@ -1,10 +1,10 @@
-github.com/aquasecurity/libbpfgo v0.4.8-libbpf-1.2.0 h1:EHEt0EborDDPU0Bn84kkzaGUA+u3alWynjIfSJDCpcw=
-github.com/aquasecurity/libbpfgo v0.4.8-libbpf-1.2.0/go.mod h1:UD3Mfr+JZ/ASK2VMucI/zAdEhb35LtvYXvAUdrdqE9s=
+github.com/aquasecurity/libbpfgo v0.5.1-libbpf-1.2 h1:Y7QB6jUsMyr0Bd+rAj67X2/ezNYLuxwp3kkjw5M3Q+4=
+github.com/aquasecurity/libbpfgo v0.5.1-libbpf-1.2/go.mod h1:0rEApF1YBHGuZ4C8OYI9q5oDBVpgqtRqYATePl9mCDk=
 github.com/aquasecurity/libbpfgo/helpers v0.4.5 h1:eCoLclL3yqv4N9jqGL3T/ckrLPms2r13C4V2xtU75yc=
 github.com/aquasecurity/libbpfgo/helpers v0.4.5/go.mod h1:j/TQLmsZpOIdF3CnJODzYngG4yu1YoDCoRMELxkQSSA=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
-github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
+github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 golang.org/x/sys v0.8.0 h1:EBmGv8NaZBZTWvrbjNoL6HVt+IVy3QDQpJs7VRIw3tU=
 golang.org/x/sys v0.8.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

@@ -75,10 +75,8 @@ func main() {
 
 	attachTc(tcModule, *device)
 
-	probe := bpfutil.Uprobe{
-		Executable: "/lib64/libc.so.6",
-		Symbol:     "getaddrinfo",
-	}
+	probe := bpfutil.Uprobe{Executable: "/lib64/libc.so.6", Symbol: "getaddrinfo"}
+
 	if err := probe.LoadProgram(bpfutil.DnsModule, "inspect_dns_lookup"); err != nil {
 		log.Fatalf("Failed loading program from module for pid %d to monitor dns: %s", pid, err)
 	}
